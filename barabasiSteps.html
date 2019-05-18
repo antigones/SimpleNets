@@ -1,0 +1,185 @@
+<html>
+	<head>
+	<script src="SimpleNets.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.5.1/cytoscape.min.js"></script>
+	<script src="https://unpkg.com/webcola/WebCola/cola.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/cytoscape-cola@2.3.0/cytoscape-cola.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.bundle.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.bundle.min.js"></script>
+	<link href="https://fonts.googleapis.com/css?family=Lobster" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css?family=Cabin" rel="stylesheet">
+	<style>
+	
+		body {
+			font-family: 'Lobster', cursive;
+		}
+		
+		.comment {
+			font-family: 'Cabin', cursive;
+			color: #5b5b5b;
+		}
+		
+		#cy {
+			width: 100%;
+			height: 500px;
+			display: block;
+			border: 1px solid #000;
+		}
+		
+		#main {
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			-webkit-box-pack: center;
+			-moz-box-pack: center;
+			-ms-flex-pack: center;
+			-webkit-justify-content: center;
+			align-items: center;
+			-webkit-box-align: center;
+			-moz-box-align: center;
+			-ms-flex-align: center;
+			-webkit-align-items: center;
+		}
+		
+		#content {
+			width: 80%;
+		}
+	</style>
+	</head>
+	<body>
+	<div id="main">
+		<div id="content">
+		<h1>Let's play with Barabasi-Albert network model!</h1>
+			<div id="cy"></div>
+			<div id="controls">
+				<div class="nslidecontainer">
+				  <label for="nodes">Number of nodes</label>
+				  <label id="nodes"></label>
+				  <input type="range" min="5" max="20" step="1" value="6" class="slider" id="nodesRange">
+				</div>
+				<div class="sslidecontainer">
+				  <label for="steps">Step</label>
+				  <label id="steps"></label>
+				  <input type="range" min="1" max="100" step="1" value="1" class="slider" id="stepsRange">
+				</div>
+				<!--<div id="chart">
+					<canvas id="myChart" width="300" height="200"></canvas>
+				</div>-->
+				<div class="comment">
+					<p>
+						Barabasi-Albert model generates scale-free (power-law) network and those are similar to many artificial and natural real life networks (the Internet, citation networks…) where we have a small number of nodes with high degree (hubs) and many node with low degree. Here p depends on destination node degree ("richer get richer").
+					</p>
+					<p>
+					Move the "steps" slide to see network formation stages.
+					</p>
+				</div>
+			</div>
+		</div>
+	</div>
+	</body>
+	<script>
+		function showStep(es,s) {
+			var erGraphCy = es[s-1];	
+
+			var cy = cytoscape({
+			  container: document.getElementById('cy'), // container to render in
+			  elements: {
+				nodes: erGraphCy.nodes,
+				edges: erGraphCy.edges
+			 },
+			 style: cytoscape.stylesheet()
+				.selector('node')
+				.style({
+						'content': 'data(id)',
+						'background-color': '#ff004d',
+					})
+			});
+			var layout = cy.layout({
+			  name: 'cola'
+			});
+
+			layout.run();
+
+		}
+		
+		function calcBA(n,k) {	
+			var distributions = new Array();
+			var sn = new SimpleNets();
+			var es = sn.barabasiAlbert(n,k);
+	
+			for (var i=0; i < es.length; i++) {
+				distributions[i] = es[i].degreeDistribution();
+				es[i] = es[i].toCy();
+			}
+			return [es,distributions];
+		}	
+		
+		function drawChart(dataArr,s) {
+		var data = dataArr[s-1];
+		console.log('data');
+		console.log(data);
+		var labels = new Array();
+		for (var i=0;i<data.length;i++) {
+			labels[i] = i;
+			//treat as undirected to simplify graph analisys
+			data[i] = data[i]/2;
+		}
+		var ctx = document.getElementById('myChart');
+		var myChart = new Chart(ctx, {
+			type: 'bar',
+			data: {
+				labels: labels,
+				datasets: [{
+					label: 'Degree distribution',
+					data: data,
+					borderWidth: 1
+				}]
+			},
+			options: {
+				scales: {
+					yAxes: [{
+						ticks: {
+							beginAtZero: true
+						}
+					}]
+				}
+			}
+		});
+		ctx.update();
+		}
+		
+			
+		var nslider = document.getElementById("nodesRange");
+		var noutput = document.getElementById("nodes");
+		noutput.innerHTML = nslider.value; 
+		
+		var sslider = document.getElementById("stepsRange");
+		var soutput = document.getElementById("steps");
+		soutput.innerHTML = sslider.value;
+		
+		nslider.oninput = function() {
+			noutput.innerHTML = this.value;
+			confs = calcBA(+nslider.value,20);
+			sslider.max = confs[0].length;
+			sslider.value = confs[0].length;
+			soutput.innerHTML  = sslider.value;
+			showStep(confs[0], +sslider.value);
+			//drawChart(confs[1],+sslider.value);
+		}
+		
+		sslider.oninput = function() {
+			soutput.innerHTML = this.value;
+			showStep(confs[0], +sslider.value);
+			//drawChart(confs[1],+sslider.value);
+		}
+	
+		var confs = calcBA(+nslider.value, 20);
+		sslider.max = confs[0].length;
+		sslider.value = confs[0].length;
+		soutput.innerHTML  = sslider.value;
+		showStep(confs[0], +sslider.value);
+		console.log('dists');
+		console.log(confs[1]);
+		//drawChart(confs[1],+sslider.value);
+	</script>
+</html>

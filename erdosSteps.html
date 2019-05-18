@@ -1,0 +1,158 @@
+<html>
+	<head>
+	<script src="SimpleNets.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.5.1/cytoscape.min.js"></script>
+	<script src="https://unpkg.com/webcola/WebCola/cola.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/cytoscape-cola@2.3.0/cytoscape-cola.min.js"></script>
+	<link href="https://fonts.googleapis.com/css?family=Lobster" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css?family=Cabin" rel="stylesheet">
+	<style>
+	
+		body {
+			font-family: 'Lobster', cursive;
+		}
+		
+		.comment {
+			font-family: 'Cabin', cursive;
+			color: #5b5b5b;
+		}
+		
+		#cy {
+			width: 100%;
+			height: 500px;
+			display: block;
+			border: 1px solid #000;
+		}
+		
+		#main {
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			-webkit-box-pack: center;
+			-moz-box-pack: center;
+			-ms-flex-pack: center;
+			-webkit-justify-content: center;
+			align-items: center;
+			-webkit-box-align: center;
+			-moz-box-align: center;
+			-ms-flex-align: center;
+			-webkit-align-items: center;
+		}
+		
+		#content {
+			width: 80%;
+		}
+	</style>
+	</head>
+	<body>
+	<div id="main">
+		<div id="content">
+		<h1>Let's play with Erdos network model!</h1>
+			<div id="cy"></div>
+			<div id="controls">
+				<div class="nslidecontainer">
+				  <label for="nodes">Number of nodes</label>
+				  <label id="nodes"></label>
+				  <input type="range" min="10" max="50" step="1" value="50" class="slider" id="nodesRange">
+				</div>
+				<div class="pslidecontainer">
+				  <label for="p">Probability</label>
+				  <label id="p"></label>
+				  <input type="range" min="0.01" max="1" step="0.01" value="0.03" class="slider" id="pRange">
+				</div>
+				<div class="sslidecontainer">
+				  <label for="steps">Step</label>
+				  <label id="steps"></label>
+				  <input type="range" min="1" max="100" step="1" value="1" class="slider" id="stepsRange">
+				</div>
+				<div class="comment">
+					<p>
+						In Erdos networks the link between two nodes is formed if a launch with probability p has 
+						a positive outcome.
+					</p>
+					<p>
+					Move the "steps" slide to see network formation stages.
+					</p>
+				</div>
+			</div>
+		</div>
+	</div>
+	</body>
+	<script>
+		function showStep(es,s) {
+			var erGraphCy = es[s-1];	
+
+			var cy = cytoscape({
+			  container: document.getElementById('cy'), // container to render in
+			  elements: {
+				nodes: erGraphCy.nodes,
+				edges: erGraphCy.edges
+			 },
+			 style: cytoscape.stylesheet()
+				.selector('node')
+				.style({
+						'content': 'data(id)',
+						'background-color': '#ff004d',
+					})
+			});
+			var layout = cy.layout({
+			  name: 'cola'
+			});
+
+			layout.run();
+
+		}
+		
+		function calcErdos(n,p,s) {	
+			var sn = new SimpleNets();
+			var es = sn.erdosSteps(n,p);
+			for (var i=0; i < es.length; i++) {
+				es[i] = es[i].toCy();
+			}
+			return es;
+		}	
+		
+			
+		var nslider = document.getElementById("nodesRange");
+		var noutput = document.getElementById("nodes");
+		noutput.innerHTML = nslider.value; 
+		
+		var pslider = document.getElementById("pRange");
+		var poutput = document.getElementById("p");
+		poutput.innerHTML = pslider.value;
+		
+		var sslider = document.getElementById("stepsRange");
+		var soutput = document.getElementById("steps");
+		soutput.innerHTML = sslider.value;
+		
+		nslider.oninput = function() {
+			noutput.innerHTML = this.value;
+			confs = calcErdos(+nslider.value,+pslider.value, +sslider.value);
+			sslider.max = confs.length;
+			sslider.value = confs.length;
+			soutput.innerHTML  = sslider.value;
+			showStep(confs, +sslider.value);
+			
+		}
+		
+		pslider.oninput = function() {
+			poutput.innerHTML = this.value;
+			confs = calcErdos(+nslider.value,+pslider.value,+sslider.value);
+			sslider.max = confs.length;
+			sslider.value = confs.length;
+			soutput.innerHTML  = sslider.value;
+			showStep(confs, +sslider.value);
+		}
+		
+		sslider.oninput = function() {
+			soutput.innerHTML = this.value;
+			showStep(confs, +sslider.value);
+		}
+	
+		var confs = calcErdos(+nslider.value, +pslider.value, +sslider.value);
+		sslider.max = confs.length;
+		sslider.value = confs.length;
+		soutput.innerHTML  = sslider.value;
+		showStep(confs, +sslider.value);
+	</script>
+</html>
